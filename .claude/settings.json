@@ -1,0 +1,75 @@
+{
+  "model": "claude-sonnet-4-20250514",
+  "thinking": { "enabled": true, "budget": 50000 },
+
+  "hooks": {
+    "SessionStart": [{
+      "hooks": [{
+        "type": "command",
+        "command": "echo '{\"additionalContext\": \"Branch: '$(git branch --show-current 2>/dev/null || echo 'none')', Changes: '$(git status --porcelain 2>/dev/null | wc -l | tr -d ' ')'\"}'"
+      }]
+    }],
+
+    "UserPromptSubmit": [{
+      "hooks": [{
+        "type": "command",
+        "command": "cat .claude/memory.md 2>/dev/null | head -50 | jq -Rs '{\"additionalContext\": .}' 2>/dev/null || echo '{}'"
+      }]
+    }],
+
+    "PreToolUse": [
+      {
+        "matcher": "Bash",
+        "hooks": [{
+          "type": "command",
+          "command": "CMD=$(cat - | jq -r '.tool_input.command'); case \"$CMD\" in *'rm -rf /'*|*'rm -rf ~'*|*'--force'*|*'sudo rm'*) echo '{\"decision\": \"block\", \"reason\": \"Dangerous command blocked\"}' ;; *) echo '{\"decision\": \"allow\"}' ;; esac",
+          "timeout": 5000
+        }]
+      },
+      {
+        "matcher": "Read|Write|Edit",
+        "hooks": [{
+          "type": "command",
+          "command": "FILE=$(cat - | jq -r '.tool_input.file_path // .tool_input.path // \"\"'); case \"$FILE\" in *.env|*.env.*|*credentials*|*secret*|*password*) echo '{\"decision\": \"block\", \"reason\": \"Sensitive file access blocked\"}' ;; *) echo '{\"decision\": \"allow\"}' ;; esac"
+        }]
+      }
+    ],
+
+    "PostToolUse": [{
+      "matcher": "Write|Edit|MultiEdit",
+      "hooks": [{
+        "type": "command",
+        "command": "FILE=$(cat - | jq -r '.tool_input.file_path // .tool_input.path // \"\"'); case \"$FILE\" in *.ts|*.tsx|*.js|*.jsx) npx prettier --write \"$FILE\" 2>/dev/null && npx eslint --fix \"$FILE\" 2>/dev/null ;; esac; echo '{}'",
+        "timeout": 15000
+      }]
+    }],
+
+    "Stop": [{
+      "hooks": [{
+        "type": "prompt",
+        "prompt": "Verify: 1) Only requested changes made? 2) No other files touched? 3) Build passes? Continue if incomplete."
+      }]
+    }]
+  },
+
+  "permissions": {
+    "allow": [
+      "Read(*)", "Glob(*)", "Grep(*)",
+      "Bash(npm *)", "Bash(pnpm *)", "Bash(npx *)", "Bash(bun *)",
+      "Bash(git status*)", "Bash(git diff*)", "Bash(git log*)",
+      "Bash(git add *)", "Bash(git commit*)", "Bash(git checkout*)", "Bash(git branch*)",
+      "Bash(curl *)", "Bash(cat *)", "Bash(ls *)", "Bash(mkdir *)", "Bash(cd *)",
+      "Bash(node *)", "Bash(tsc *)", "Bash(vitest *)", "Bash(jest *)",
+      "Bash(prisma *)", "Bash(supabase *)", "Bash(playwright *)",
+      "Bash(vercel *)", "Bash(netlify *)", "Bash(docker *)"
+    ],
+    "deny": [
+      "Read(.env*)", "Write(.env*)", "Edit(.env*)",
+      "Bash(rm -rf /)*", "Bash(rm -rf ~)*", "Bash(rm -rf .)*",
+      "Bash(sudo *)", "Bash(chmod 777 *)",
+      "Bash(git push --force*)", "Bash(git reset --hard*)",
+      "Bash(curl * | sh)", "Bash(wget * | sh)"
+    ]
+  },
+  "enableAllProjectMcpServers": true
+}

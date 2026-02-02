@@ -1,0 +1,37 @@
+{
+  "name": "claude-saas-mcp",
+  "version": "7.0.0",
+  "description": "SaaS 개발용 MCP 서버 - Stripe/Supabase/Vercel/Game API 연동 (TypeScript strict)",
+  "type": "module",
+  "main": "dist/index.js",
+  "bin": {
+    "claude-saas-mcp": "dist/index.js"
+  },
+  "scripts": {
+    "build": "tsc",
+    "dev": "tsc --watch",
+    "start": "node dist/index.js",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "test:coverage": "vitest run --coverage"
+  },
+  "keywords": [
+    "mcp",
+    "claude",
+    "saas",
+    "korean",
+    "nextjs"
+  ],
+  "dependencies": {
+    "@modelcontextprotocol/sdk": "^1.25.3"
+  },
+  "devDependencies": {
+    "@types/node": "^20.10.0",
+    "@vitest/coverage-v8": "^2.1.9",
+    "typescript": "^5.3.3",
+    "vitest": "^2.1.9"
+  },
+  "engines": {
+    "node": ">=18.0.0"
+  }
+}
